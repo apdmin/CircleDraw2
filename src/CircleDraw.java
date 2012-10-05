@@ -8,6 +8,7 @@ Fall 2012
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Point;
@@ -21,6 +22,7 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.Graphics;
 import java.awt.Point;
+import javax.swing.border.MatteBorder;
 import javax.swing.BoxLayout;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -33,10 +35,14 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
 import javax.swing.JWindow;
+import javax.swing.plaf.*;
 import javax.swing.SpringLayout;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
+//import com.jtattoo.plaf.*;
 
 public class CircleDraw
 {
@@ -45,6 +51,7 @@ public class CircleDraw
   private static JFrame frame, colorChooserFrame;
   private static JColorChooser colorChooser;
   private static CustomCanvas canvas;
+  private static JPanel canvasPanel;
   private static JSlider leftSlider, bottomSlider, sizeSlider;
   private static JButton showButton;
   private static final int sliderGradient = 2000;
@@ -58,6 +65,7 @@ public class CircleDraw
     frame = new JFrame("Circle Draw");
     frame.setPreferredSize(new Dimension(800, 600));
     frame.setMinimumSize(new Dimension(350, 300));
+    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     addComponentsToPane(frame.getContentPane());
     frame.pack();
     frame.setLocationRelativeTo(null);
@@ -88,35 +96,26 @@ public class CircleDraw
 
   private static void resizeCircle(int amountToChangeRadius)
   {
-    if (showButton.getText().equals("Hide"))
-    {
-      sizeSlider.setValue(canvas.getCircleRadius()-amountToChangeRadius);
-    }
+    sizeSlider.setValue(canvas.getCircleRadius()-amountToChangeRadius);
+    canvas.repaint();
   }
 
   private static void setSlidersTo(int x, int y)
   {
-    if (showButton.getText().equals("Hide"))
-    {
-      Integer canvasHeight = new Integer(canvas.getHeight());
-      Integer canvasWidth = new Integer(canvas.getWidth());
-      Integer xCoord = new Integer(x);
-      Integer yCoord = new Integer(y);
-      double yProportion = yCoord.doubleValue()/canvasHeight.doubleValue();
-      double xProportion = xCoord.doubleValue()/canvasWidth.doubleValue();
-      SliderChangeListener.bypassDrawing = true;
-      leftSlider.setValue((int)((1-yProportion)*sliderGradient));
-      bottomSlider.setValue((int)(xProportion*sliderGradient));
-      SliderChangeListener.bypassDrawing = false;
-      //drawCircle();
-    }
+    Integer canvasHeight = new Integer(canvas.getHeight());
+    Integer canvasWidth = new Integer(canvas.getWidth());
+    Integer xCoord = new Integer(x);
+    Integer yCoord = new Integer(y);
+    double yProportion = yCoord.doubleValue()/canvasHeight.doubleValue();
+    double xProportion = xCoord.doubleValue()/canvasWidth.doubleValue();
+    SliderChangeListener.bypassDrawing = true;
+    leftSlider.setValue((int)((1-yProportion)*sliderGradient));
+    bottomSlider.setValue((int)(xProportion*sliderGradient));
+    SliderChangeListener.bypassDrawing = false;
   }
   protected static void drawCircle()
   {
-    if (showButton.getText().equals("Hide"))
-    {
-      canvas.repaint();
-    }
+    canvas.repaint();
   }
 
 
@@ -135,7 +134,8 @@ public class CircleDraw
       {
         public void stateChanged(ChangeEvent e)
         {
-          CircleDraw.drawCircle();
+          canvas.repaint();
+          //CircleDraw.drawCircle();
         }
       });
       colorChooserFrame.add(colorChooser);
@@ -159,7 +159,7 @@ public class CircleDraw
       }
       else
       {
-        colorChooserFrame.setLocation(frameLocation.x + frameWidth, frameLocation.y);
+        colorChooserFrame.setLocation(screenSize.width-colorChooserWidth, frameLocation.y);
       }
       colorChooserFrame.setVisible(true);
     }
@@ -171,6 +171,9 @@ public class CircleDraw
 
   private static void addComponentsToPane(Container contentPane)
   {
+    canvasPanel = new JPanel();
+    canvasPanel.setLayout(new BorderLayout());
+    canvasPanel.setBorder(new MatteBorder(1, 1, 1, 1, Color.black));
     canvas = new CustomCanvas();
     SpringLayout frameLayout = new SpringLayout();
     frame.setLayout(frameLayout);
@@ -180,15 +183,24 @@ public class CircleDraw
     leftSlider.setMinimum(0);
     leftSlider.setMaximum(sliderGradient);
     leftSlider.setValue(sliderGradient/2);
-    /*
+
     JSlider rightSlider = new JSlider();
     rightSlider.setOrientation(SwingConstants.VERTICAL);
-    JSlider topSlider = new JSlider();
-    */
+    rightSlider.setMinimum(0);
+    rightSlider.setMaximum(sliderGradient);
+    rightSlider.setValue(sliderGradient/2);
+    rightSlider.setModel(leftSlider.getModel());
+
     bottomSlider = new JSlider();
     bottomSlider.setMinimum(0);
     bottomSlider.setMaximum(sliderGradient);
     bottomSlider.setValue(sliderGradient/2);
+
+    JSlider topSlider = new JSlider();
+    topSlider.setMinimum(0);
+    topSlider.setMaximum(sliderGradient);
+    topSlider.setValue(sliderGradient/2);
+    topSlider.setModel(bottomSlider.getModel());
 
     sizeSlider = new JSlider();
     sizeSlider.setMinimum(5);
@@ -212,19 +224,18 @@ public class CircleDraw
           public void mouseExited(MouseEvent e) {}
           public void mousePressed(MouseEvent e)
           {
-            if (showButton.getText().equals("Hide"))
+            if (e.getButton() == MouseEvent.BUTTON1)
             {
-              if (e.getButton() == MouseEvent.BUTTON1)
-              {
-                Point point = e.getPoint();
-                setSlidersTo(point.x, point.y);
-                drawCircle();
-              }
-              else if (e.getButton() == MouseEvent.BUTTON3)
-              {
-                canvas.setFilled(!canvas.isFilled());
-                drawCircle();
-              }
+              Point point = e.getPoint();
+              setSlidersTo(point.x, point.y);
+              canvas.repaint();
+              //drawCircle();
+            }
+            else if (e.getButton() == MouseEvent.BUTTON3)
+            {
+              canvas.setFilled(!canvas.isFilled());
+              canvas.repaint();
+              //drawCircle();
             }
           }
           public void mouseReleased(MouseEvent e) {}
@@ -234,12 +245,10 @@ public class CircleDraw
         {
           public void mouseDragged(MouseEvent e)
           {
-            if (e.getButton() == MouseEvent.BUTTON1 && showButton.getText().equals("Hide"))
-            {
-              Point point = e.getPoint();
-              setSlidersTo(point.x, point.y);
-              drawCircle();
-            }
+            Point point = e.getPoint();
+            setSlidersTo(point.x, point.y);
+            canvas.repaint();
+            //drawCircle();
           }
           public void mouseMoved(MouseEvent e) {}
         });
@@ -268,7 +277,7 @@ public class CircleDraw
             {
               showButton.setText("Hide");
               canvas.setHidden(false);
-              drawCircle();
+              canvas.repaint();
             }
             else if (showButton.getText().equals("Hide"))
             {
@@ -296,10 +305,11 @@ public class CircleDraw
 
 
     //-------------------- Layout Setup --------------------
-      int sliderYMargin = 14;
-      int sliderXMargin = 13;
-      int xMargin = 5;
-      int yMargin = 5;
+      //int sliderYMargin = 14;
+      //int sliderXMargin = 13;
+      int xMargin = 10;
+      int yMargin = 10;
+      int sliderBarWidth = 7;
 
       frameLayout.putConstraint(SpringLayout.SOUTH, colorButton, -1*yMargin, SpringLayout.SOUTH, contentPane);
       frameLayout.putConstraint(SpringLayout.WEST, colorButton, xMargin, SpringLayout.WEST, contentPane);
@@ -308,35 +318,44 @@ public class CircleDraw
       frameLayout.putConstraint(SpringLayout.EAST, showButton, -1*xMargin, SpringLayout.EAST, contentPane);
 
       frameLayout.putConstraint(SpringLayout.SOUTH, sizeSlider, -1*yMargin, SpringLayout.SOUTH, contentPane);
-      frameLayout.putConstraint(SpringLayout.EAST, sizeSlider, 0, SpringLayout.WEST, showButton);
-      frameLayout.putConstraint(SpringLayout.WEST, sizeSlider, 0, SpringLayout.EAST, colorButton);
-
-      frameLayout.putConstraint(SpringLayout.SOUTH, bottomSlider, 0, SpringLayout.NORTH, sizeSlider);
-      frameLayout.putConstraint(SpringLayout.EAST, bottomSlider, -1*xMargin,  SpringLayout.EAST, contentPane);
-      frameLayout.putConstraint(SpringLayout.WEST, bottomSlider, -1 * sliderXMargin,  SpringLayout.EAST, leftSlider);
+      frameLayout.putConstraint(SpringLayout.EAST, sizeSlider, -1*xMargin, SpringLayout.WEST, showButton);
+      frameLayout.putConstraint(SpringLayout.WEST, sizeSlider, xMargin, SpringLayout.EAST, colorButton);
 
 
-      frameLayout.putConstraint(SpringLayout.NORTH, leftSlider, yMargin, SpringLayout.NORTH, contentPane);
-      frameLayout.putConstraint(SpringLayout.SOUTH, leftSlider, sliderYMargin, SpringLayout.NORTH, bottomSlider);
+      Component tallestComponent = sizeSlider.getHeight() > showButton.getHeight() ? sizeSlider : showButton;
+
+      frameLayout.putConstraint(SpringLayout.SOUTH, bottomSlider, -1*yMargin, SpringLayout.NORTH, tallestComponent);
+      frameLayout.putConstraint(SpringLayout.EAST, bottomSlider, -1*xMargin,  SpringLayout.WEST, rightSlider);
+      frameLayout.putConstraint(SpringLayout.WEST, bottomSlider, 0,  SpringLayout.EAST, leftSlider);
+
+      frameLayout.putConstraint(SpringLayout.NORTH, topSlider, yMargin, SpringLayout.NORTH, contentPane);
+      frameLayout.putConstraint(SpringLayout.EAST, topSlider, -1*xMargin, SpringLayout.WEST, rightSlider);
+      frameLayout.putConstraint(SpringLayout.WEST, topSlider, 0, SpringLayout.EAST, leftSlider);
+
+      frameLayout.putConstraint(SpringLayout.NORTH, leftSlider, 0, SpringLayout.SOUTH, topSlider);
+      frameLayout.putConstraint(SpringLayout.SOUTH, leftSlider, 0, SpringLayout.NORTH, bottomSlider);
       frameLayout.putConstraint(SpringLayout.WEST, leftSlider, xMargin, SpringLayout.WEST, contentPane);
 
-      frameLayout.putConstraint(SpringLayout.NORTH, canvas, sliderYMargin+yMargin, SpringLayout.NORTH, contentPane);
-      frameLayout.putConstraint(SpringLayout.SOUTH, canvas, 0, SpringLayout.NORTH, bottomSlider);
-      frameLayout.putConstraint(SpringLayout.EAST, canvas, -1*sliderXMargin-xMargin, SpringLayout.EAST, contentPane);
-      frameLayout.putConstraint(SpringLayout.WEST, canvas, 0, SpringLayout.EAST, leftSlider);
+      frameLayout.putConstraint(SpringLayout.NORTH, rightSlider, 0, SpringLayout.SOUTH, topSlider);
+      frameLayout.putConstraint(SpringLayout.SOUTH, rightSlider, 0, SpringLayout.NORTH, bottomSlider);
+      frameLayout.putConstraint(SpringLayout.EAST, rightSlider, -1*xMargin, SpringLayout.EAST, contentPane);
+
+      frameLayout.putConstraint(SpringLayout.NORTH, canvasPanel, sliderBarWidth, SpringLayout.SOUTH, topSlider);
+      frameLayout.putConstraint(SpringLayout.SOUTH, canvasPanel, -1*sliderBarWidth, SpringLayout.NORTH, bottomSlider);
+      frameLayout.putConstraint(SpringLayout.EAST, canvasPanel, -1*(sliderBarWidth+xMargin), SpringLayout.WEST, rightSlider);
+      frameLayout.putConstraint(SpringLayout.WEST, canvasPanel, sliderBarWidth, SpringLayout.EAST, leftSlider);
 
 
     //-------------------- Add components to content pane --------------------
-      contentPane.add(canvas);
+      canvasPanel.add(canvas, BorderLayout.CENTER);
+      contentPane.add(canvasPanel);
       contentPane.add(leftSlider);
       contentPane.add(bottomSlider);
       contentPane.add(sizeSlider);
       contentPane.add(colorButton);
       contentPane.add(showButton);
-      /*
-      contentPane.add(rightSlider, BorderLayout.LINE_END);
-      contentPane.add(topSlider, BorderLayout.PAGE_START);
-      */
+      contentPane.add(rightSlider);
+      contentPane.add(topSlider);
   }
 
 
@@ -344,6 +363,27 @@ public class CircleDraw
 
   public static void main(String[] args)
   {
+    try
+    {
+      UIManager.setLookAndFeel("javax.swing.plaf.metal.MetalLookAndFeel");
+      //UIManager.setLookAndFeel("com.jtattoo.plaf.hifi.HiFiLookAndFeel");
+    }
+    catch (UnsupportedLookAndFeelException e)
+    {
+      e.printStackTrace();
+    }
+    catch (ClassNotFoundException e)
+    {
+      e.printStackTrace();
+    }
+    catch (InstantiationException e)
+    {
+      e.printStackTrace();
+    }
+    catch (IllegalAccessException e)
+    {
+      e.printStackTrace();
+    }
     SwingUtilities.invokeLater(new Runnable()
     {
       public void run()
