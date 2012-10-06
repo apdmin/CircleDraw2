@@ -15,9 +15,9 @@ public class SliderChangeListener implements ChangeListener
   public static boolean bypassDrawing = false;
   public void stateChanged(ChangeEvent e)
   {
-    if (!bypassDrawing)
+    if (!bypassDrawing && !CircleDraw.canvas.isCircleShown())
     {
-      CircleDraw.drawCircle();
+      CircleDraw.canvas.repaint();
     }
   }
 }

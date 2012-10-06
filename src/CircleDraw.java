@@ -50,7 +50,7 @@ public class CircleDraw
 
   private static JFrame frame, colorChooserFrame;
   private static JColorChooser colorChooser;
-  private static CustomCanvas canvas;
+  static CustomCanvas canvas;
   private static JPanel canvasPanel;
   private static JSlider leftSlider, bottomSlider, sizeSlider;
   private static JButton showButton;
@@ -96,8 +96,11 @@ public class CircleDraw
 
   private static void resizeCircle(int amountToChangeRadius)
   {
-    sizeSlider.setValue(canvas.getCircleRadius()-amountToChangeRadius);
-    canvas.repaint();
+    sizeSlider.setValue(getRadius()-amountToChangeRadius);
+    if (!canvas.isCircleShown())
+    {
+      canvas.repaint();
+    }
   }
 
   private static void setSlidersTo(int x, int y)
@@ -228,7 +231,10 @@ public class CircleDraw
             {
               Point point = e.getPoint();
               setSlidersTo(point.x, point.y);
-              canvas.repaint();
+              if (!canvas.isCircleShown())
+              {
+                canvas.repaint();
+              }
               //drawCircle();
             }
             else if (e.getButton() == MouseEvent.BUTTON3)
@@ -241,6 +247,7 @@ public class CircleDraw
           public void mouseReleased(MouseEvent e) {}
         });
 
+        /*
         canvas.addMouseMotionListener(new MouseMotionListener()
         {
           public void mouseDragged(MouseEvent e)
@@ -252,6 +259,7 @@ public class CircleDraw
           }
           public void mouseMoved(MouseEvent e) {}
         });
+        */
 
         canvas.addMouseWheelListener(new MouseWheelListener()
         {
@@ -276,13 +284,17 @@ public class CircleDraw
             if (showButton.getText().equals("Show"))
             {
               showButton.setText("Hide");
-              canvas.setHidden(false);
+              //canvas.setHidden(false);
+              canvas.setCircleShown(true);
+              canvas.setCrossHairsShown(false);
               canvas.repaint();
             }
             else if (showButton.getText().equals("Hide"))
             {
               showButton.setText("Show");
-              canvas.setHidden(true);
+              //canvas.setHidden(true);
+              canvas.setCircleShown(false);
+              canvas.setCrossHairsShown(true);
               canvas.repaint();
             }
             else
